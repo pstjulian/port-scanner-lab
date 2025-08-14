@@ -3,6 +3,10 @@
 #Used to create sockets that listen or establish connections on a network
 import socket
 
+#Used to track how long scans will take
+from datetime import datetime
+
+
 #This accepts a user input, which should be the target devices local IP address or hostname, like google.com, and stores it in the target variable.
 target = input("\nEnter the local IP address or hostname to scan: ")
 
@@ -19,24 +23,36 @@ except socket.gaierror:
 print(f"\nStarting scan on target: {target_ip}")
 
 
-#Creating a socket for the scanner that uses IPv4 adresses and uses TCP connections.
-#A socket is essentially a virtual connection point that can listen for and establish connections within a network.
-#In this python code, it is an object that abstracts lower-level networking functiions within your operating system.
-#I used to think of sockets and ports being the same because I thought of them to be endpoints for connections, but a socket is an actual mechinism that makes connections, while a port is just a number that further identifies what aplication on a machine is providing a service.
-scanner_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# Track when the scan starts
+start_time = datetime.now()
 
-#Were establishing this behavior now so when the socket does try to use connect() in the future it will not hang on to closed or filtered ports for lomger than 1 second instead of several seconds.
-scanner_socket.settimeout(1)
+# Define the range of ports to scan
+for port in range(1, 1024):  # You can increase this range if you'd like
 
-#Test port
-port = 80
+    
+    #Creating a socket for the scanner that uses IPv4 adresses and uses TCP connections.
+    #A socket is essentially a virtual connection point that can listen for and establish connections within a network.
+    #In this python code, it is an object that abstracts lower-level networking functiions within your operating system.
+    #I used to think of sockets and ports being the same because I thought of them to be endpoints for connections, but a socket is an actual mechinism that makes connections, while a port is just a number that further identifies what aplication on a machine is providing a service.
+    scanner_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    
+    #Were establishing this behavior now so when the socket does try to use connect() in the future it will not hang on to closed or filtered ports for lomger than 1 second instead of several seconds.
+    scanner_socket.settimeout(0.5)
 
-#This statement will try to connect to the targets IP and port, if it works, it will display the first messages, if it doesnt, which means the port is either closed or filtered, then it will display the second, and lastly, wether it connects or not, it will close the socket, essesntially endind the connection.
-#connect() accepts one argument, so in order for us to send the target IP and port as one argument, we group it as one. (target_ip,port).
-try:
-    scanner_socket.connect((target_ip,port))
-    print(f"\n[+] Port {port} is open")
-except:
-    print(f"\n[-] Port {port} is closed or filtered")
-finally:
-    scanner_socket.close()
+
+    try:
+        #connect_ex() tries to connect the socket. The "ex" portions stands for extended error handling, so it will return a 0 if the connections is a success, and a non-zero value if it fails.
+        #This avoids us from having to use the try/except block every single time we check a port.
+        result = scanner_socket.connect_ex((target_ip, port))
+
+        if result == 0:
+            print(f"[+] Port {port} is open")
+    except:
+        pass  # Ignore errors and continue scanning
+    finally:
+        scanner_socket.close()
+
+#Takes account for the time at the end of the scan, and compares it to the start time to find the total time it took to scan all ports.
+#We then take the calculated time and print it out.
+end_time = datetime.now()
+print(f"\nScan completed in: {end_time - start_time}")
